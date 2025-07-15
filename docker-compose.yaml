@@ -2,7 +2,7 @@ services:
   adonis-app:
     build: .
     ports:
-      - "1001:3333"
+      - "2005:3333"
     environment:
       LOG_LEVEL: info
       APP_KEY: 7Otq2phcA_g__DtX_NQLJZRQN7jxIdFa
