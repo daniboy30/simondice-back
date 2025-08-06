@@ -5,9 +5,7 @@ import GameMove from '#models/game_moves'
 import { makeMoveValidator } from '#validators/game'
 
 export default class GamePlaysController {
-  /**
-   * Hacer un movimiento en el juego
-   */
+
   async makeMove({ params, request, response, auth }: HttpContext) {
     try {
       const user = auth.getUserOrFail()
