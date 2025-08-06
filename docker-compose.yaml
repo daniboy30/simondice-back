@@ -1,0 +1,26 @@
+services:
+  adonis-app:
+    build: .
+    ports:
+      - "2005:3333"
+    environment:
+      LOG_LEVEL: info
+      APP_KEY: 7Otq2phcA_g__DtX_NQLJZRQN7jxIdFa
+      TZ: UTC
+      PORT: 3333
+      HOST: 0.0.0.0
+      NODE_ENV: development
+      DB_CONNECTION: pg
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      DB_DATABASE: postgres
+      DB_HOST: postgres2      # <— nombre del servicio en la red
+      DB_PORT: 5432
+    volumes:
+      - ./:/app
+    networks:
+      - igmar-net
+
+networks:
+  igmar-net:
+    external: true
