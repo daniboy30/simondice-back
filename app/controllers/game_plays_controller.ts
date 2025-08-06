@@ -8,13 +8,13 @@ export default class GamePlaysController {
 
   async makeMove({ params, request, response, auth }: HttpContext) {
     try {
-      const user = auth.getUserOrFail()
+      const user = await auth.authenticate()
       const gameId = params.id
       
       // Validar datos de entrada
       let payload
       try {
-        payload = await request.validateUsing(makeMoveValidator)
+        payload = await makeMoveValidator.validate(request.all())
       } catch (error) {
         return response.badRequest({
           message: 'Error de validación',
@@ -38,12 +38,12 @@ export default class GamePlaysController {
       // Verificar que sea el turno del jugador
       console.log('Verificando turno:', {
         currentPlayerId: game.currentPlayerId,
-        userId: user.id,
+        userId: (user as any).id,
         gameStatus: game.status,
         turnNumber: game.turnNumber
       })
       
-      if (game.currentPlayerId !== user.id) {
+      if (game.currentPlayerId !== (user as any).id) {
         return response.badRequest({
           message: 'No es tu turno'
         })
@@ -116,7 +116,7 @@ export default class GamePlaysController {
       // Crear el movimiento
       const move = await GameMove.create({
         gameId: gameId,
-        playerId: user.id,
+        playerId: (user as any).id,
         turnNumber: game.turnNumber,
         sequence: payload.sequence,
         colorAdded: newColor,
@@ -128,7 +128,7 @@ export default class GamePlaysController {
         // El jugador se equivocó, terminar el juego
         const otherPlayer = await GamePlayer.query()
           .where('gameId', gameId)
-          .where('userId', '!=', user.id)
+          .where('userId', '!=', (user as any).id)
           .firstOrFail()
 
         game.status = 'finished'
@@ -156,7 +156,7 @@ export default class GamePlaysController {
       // Movimiento correcto, cambiar turno
       const otherPlayer = await GamePlayer.query()
         .where('gameId', gameId)
-        .where('userId', '!=', user.id)
+        .where('userId', '!=', (user as any).id)
         .firstOrFail()
 
       game.currentPlayerId = otherPlayer.userId
@@ -240,7 +240,7 @@ export default class GamePlaysController {
    */
   async getGameState({ params, response, auth }: HttpContext) {
     try {
-      const user = auth.getUserOrFail()
+      const user = await auth.authenticate()
       const gameId = params.id
 
       const game = await Game.query()
@@ -262,7 +262,7 @@ export default class GamePlaysController {
         .firstOrFail()
 
       // Verificar que el usuario esté en el juego
-      const playerInGame = game.players.find(player => player.userId === user.id)
+      const playerInGame = game.players.find(player => player.userId === (user as any).id)
       if (!playerInGame) {
         return response.forbidden({
           message: 'No estás en este juego'
@@ -277,7 +277,7 @@ export default class GamePlaysController {
 
       // Obtener solo el último color agregado por el oponente
       let opponentLastColor = null
-      if (lastMove && lastMove.playerId !== user.id) {
+      if (lastMove && lastMove.playerId !== (user as any).id) {
         opponentLastColor = lastMove.colorAdded
       }
 
@@ -291,7 +291,7 @@ export default class GamePlaysController {
           currentPlayer: game.currentPlayer,
           winner: game.winner,
           turnNumber: game.turnNumber,
-          isMyTurn: game.currentPlayerId === user.id,
+          isMyTurn: game.currentPlayerId === (user as any).id,
           myPlayerNumber: playerInGame.playerNumber,
           opponentLastColor: opponentLastColor, // Solo el último color del oponente
           players: game.players.map(player => ({
@@ -320,7 +320,7 @@ export default class GamePlaysController {
    */
   async forfeit({ params, response, auth }: HttpContext) {
     try {
-      const user = auth.getUserOrFail()
+      const user = await auth.authenticate()
       const gameId = params.id
 
       const game = await Game.findOrFail(gameId)
@@ -335,7 +335,7 @@ export default class GamePlaysController {
       // Verificar que el usuario esté en el juego
       const playerInGame = await GamePlayer.query()
         .where('gameId', gameId)
-        .where('userId', user.id)
+        .where('userId', (user as any).id)
         .first()
 
       if (!playerInGame) {
@@ -347,7 +347,7 @@ export default class GamePlaysController {
       // Obtener el oponente
       const opponent = await GamePlayer.query()
         .where('gameId', gameId)
-        .where('userId', '!=', user.id)
+        .where('userId', '!=', (user as any).id)
         .firstOrFail()
 
       // El oponente gana por forfeit

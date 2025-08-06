@@ -8,7 +8,7 @@ export default class AuthController {
    */
   async register({ request, response }: HttpContext) {
     try {
-      const payload = await request.validateUsing(registerValidator)
+      const payload = await registerValidator.validate(request.all())
       
       const user = await User.create(payload)
       const token = await User.accessTokens.create(user)
@@ -35,7 +35,7 @@ export default class AuthController {
    */
   async login({ request, response }: HttpContext) {
     try {
-      const payload = await request.validateUsing(loginValidator)
+      const payload = await loginValidator.validate(request.all())
       
       const user = await User.verifyCredentials(payload.email, payload.password)
       const token = await User.accessTokens.create(user)
@@ -61,8 +61,8 @@ export default class AuthController {
    */
   async logout({ auth, response }: HttpContext) {
     try {
-      const user = auth.getUserOrFail()
-      await User.accessTokens.delete(user, user.currentAccessToken.identifier)
+      const user = await auth.authenticate()
+      await User.accessTokens.delete(user, (user as any).currentAccessToken.identifier)
       
       return response.ok({
         message: 'Sesión cerrada exitosamente'
@@ -79,14 +79,14 @@ export default class AuthController {
    */
   async me({ auth, response }: HttpContext) {
     try {
-      const user = auth.getUserOrFail()
+      const user = await auth.authenticate()
       
       return response.ok({
         user: {
-          id: user.id,
-          email: user.email,
-          fullName: user.fullName,
-          createdAt: user.createdAt
+          id: (user as any).id,
+          email: (user as any).email,
+          fullName: (user as any).fullName,
+          createdAt: (user as any).createdAt
         }
       })
     } catch (error) {

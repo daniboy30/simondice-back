@@ -44,11 +44,11 @@ export default class GamesController {
    */
   async store({ request, response, auth }: HttpContext) {
     try {
-      const user = auth.getUserOrFail()
-      const payload = await request.validateUsing(createGameValidator)
+      const user = await auth.authenticate()
+      const payload = await createGameValidator.validate(request.all())
 
       const game = await Game.create({
-        creatorId: user.id,
+        creatorId: (user as any).id,
         colors: payload.colors,
         status: 'waiting',
         turnNumber: 0
@@ -57,7 +57,7 @@ export default class GamesController {
       // Agregar al creador como jugador 1
       await GamePlayer.create({
         gameId: game.id,
-        userId: user.id,
+        userId: (user as any).id,
         playerNumber: '1',
         isTurn: true
       })
@@ -146,7 +146,7 @@ export default class GamesController {
    */
   async join({ params, response, auth }: HttpContext) {
     try {
-      const user = auth.getUserOrFail()
+      const user = await auth.authenticate()
       const game = await Game.findOrFail(params.id)
 
       // Verificar que la partida esté esperando jugadores
@@ -157,7 +157,7 @@ export default class GamesController {
       }
 
       // Verificar que el usuario no sea el creador
-      if (game.creatorId === user.id) {
+      if (game.creatorId === (user as any).id) {
         return response.badRequest({
           message: 'No puedes unirte a tu propia partida'
         })
@@ -166,7 +166,7 @@ export default class GamesController {
       // Verificar que no esté ya en la partida
       const existingPlayer = await GamePlayer.query()
         .where('gameId', game.id)
-        .where('userId', user.id)
+        .where('userId', (user as any).id)
         .first()
 
       if (existingPlayer) {
@@ -189,7 +189,7 @@ export default class GamesController {
       // Agregar jugador 2
       await GamePlayer.create({
         gameId: game.id,
-        userId: user.id,
+        userId: (user as any).id,
         playerNumber: '2',
         isTurn: false
       })
@@ -235,11 +235,11 @@ export default class GamesController {
    */
   async myGames({ response, auth }: HttpContext) {
     try {
-      const user = auth.getUserOrFail()
+      const user = await auth.authenticate()
 
       const games = await Game.query()
         .whereHas('players', (players) => {
-          players.where('userId', user.id)
+          players.where('userId', (user as any).id)
         })
         .preload('creator', (creator) => {
           creator.select('id', 'fullName', 'email')
